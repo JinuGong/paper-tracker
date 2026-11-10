@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>제출 현황</title>
+<style>
+:root{
+  --bg:#F4F4F6; --surface:#FFFFFF; --ink:#111113; --sub:#6C6C72; --line:#E7E7EB; --press:#ECECF0;
+  --accent:#2F6FEB; --on-accent:#FFFFFF;
+  --conf:#C05F17; --jour:#12806C; --good:#1E874A; --bad:#C2372F; --warn:#C97400; --active:#2F6FEB; --prep:#A0A0A6;
+  --font:system-ui, "SamsungOne", "Samsung Sans", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000000; --surface:#17171A; --ink:#F1F1F3; --sub:#9B9BA2; --line:#2A2A2E; --press:#222226;
+    --accent:#5E8FF2; --on-accent:#FFFFFF;
+    --conf:#E89A5B; --jour:#4FC2AC; --good:#5CC985; --bad:#F06B62; --warn:#F0A63A; --active:#5E8FF2; --prep:#6E6E75;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box;margin:0}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+body.locked{overflow:hidden}
+
+/* ---------- home ---------- */
+.appbar{position:sticky;top:0;z-index:4;height:calc(56px + var(--top));padding:var(--top) 8px 0 20px;display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+.appbar .small{font-size:19px;font-weight:700;opacity:0;transition:opacity .15s}
+.appbar.shrunk .small{opacity:1}
+.ibtn{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--ink)}
+.ibtn:active{background:var(--press)}
+.ibtn svg{width:24px;height:24px}
+.hero{padding:44px 24px 28px}
+.hero h1{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.hero p{margin-top:8px;color:var(--sub);font-size:15px}
+.hero p b{color:var(--ink);font-weight:600}
+.hero p b.w{color:var(--warn)}
+.filters{display:flex;gap:8px;padding:0 16px 14px;overflow-x:auto;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filters button{flex:none;height:36px;padding:0 16px;border-radius:18px;border:1px solid var(--line);font-size:14px;color:var(--sub);background:var(--surface)}
+.filters button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600}
+main{padding:0 12px calc(160px + var(--bot))}
+.group{margin-bottom:18px}
+.ghead{display:flex;justify-content:space-between;padding:6px 12px 8px;font-size:13px;color:var(--sub);font-weight:600}
+.box{background:var(--surface);border-radius:22px;overflow:hidden}
+.item{display:block;width:100%;text-align:left;padding:16px 18px;position:relative}
+.item + .item::before{content:"";position:absolute;top:0;left:18px;right:18px;border-top:1px solid var(--line)}
+.item:active{background:var(--press)}
+.l1{display:flex;align-items:baseline;gap:8px}
+.venue{font-weight:700;font-size:16.5px;overflow-wrap:anywhere}
+.kind{font-size:12px;font-weight:600}
+.kind.conf{color:var(--conf)} .kind.journal{color:var(--jour)}
+.dd{margin-left:auto;font-size:14px;font-weight:700;white-space:nowrap;color:var(--sub)}
+.dd.soon{color:var(--warn)} .dd.over{color:var(--bad)}
+.t{margin-top:3px;font-size:15px;color:var(--ink);opacity:.86;overflow-wrap:anywhere}
+.l3{margin-top:7px;font-size:13px;color:var(--sub);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:4px;flex:none;background:var(--active)}
+.dot.action{background:var(--warn)} .dot.good{background:var(--good)} .dot.bad{background:var(--bad)} .dot.prep{background:transparent;border:1.5px solid var(--prep)}
+.st{color:var(--ink);font-weight:600}
+.empty{padding:40px 16px;text-align:center;color:var(--sub);font-size:15px}
+.empty .btn{margin-top:18px}
+
+nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);border-top:1px solid var(--line);padding:0 0 var(--bot);display:grid;grid-template-columns:repeat(3,1fr)}
+nav.bottom button{height:60px;display:grid;place-content:center;gap:1px;font-size:13px;color:var(--sub)}
+nav.bottom button b{font-size:15px;font-weight:600}
+nav.bottom button span{font-size:11.5px}
+nav.bottom button[aria-pressed="true"]{color:var(--ink)}
+nav.bottom button[aria-pressed="true"] b{font-weight:800}
+.fab{position:fixed;right:20px;bottom:calc(76px + var(--bot));z-index:6;width:60px;height:60px;border-radius:30px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+.fab svg{width:26px;height:26px}
+.fab:active{transform:scale(.96)}
+
+/* ---------- sub pages ---------- */
+.page{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;transform:translateX(100%);visibility:hidden;transition:transform .22s ease, visibility 0s .22s;overscroll-behavior:contain}
+.page.open{transform:none;visibility:visible;transition:transform .22s ease}
+.page .appbar{padding-left:4px;padding-right:8px}
+.page .appbar .ttl{font-size:19px;font-weight:700;flex:1;margin-left:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbtn{height:44px;padding:0 14px;border-radius:22px;font-weight:700;color:var(--accent);font-size:16px}
+.tbtn:active{background:var(--press)}
+.pbody{padding:8px 12px calc(40px + var(--bot))}
+.dhead{padding:18px 12px 22px}
+.dhead .kv{font-size:14px;color:var(--sub);display:flex;gap:8px;align-items:center}
+.dhead h2{margin-top:8px;font-size:23px;font-weight:700;line-height:1.35;letter-spacing:-.01em;overflow-wrap:anywhere}
+.dhead .stline{margin-top:14px;display:flex;align-items:center;gap:8px;font-size:16px}
+.steps{margin-top:16px;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px}
+.steps div{display:grid;gap:6px;font-size:11px;color:var(--sub);text-align:center}
+.steps i{height:4px;border-radius:2px;background:var(--line)}
+.steps .done i{background:var(--ink);opacity:.35}
+.steps .cur i{background:var(--ink)}
+.steps .cur{color:var(--ink);font-weight:700}
+.steps.good .done i,.steps.good .cur i{background:var(--good)}
+.steps.bad .done i,.steps.bad .cur i{background:var(--bad);opacity:.55}
+.sec{margin-bottom:18px}
+.sech{padding:6px 12px 8px;font-size:13px;color:var(--sub);font-weight:600}
+.rows .r{display:flex;justify-content:space-between;gap:16px;padding:15px 18px;position:relative;font-size:15px}
+.rows .r + .r::before{content:"";position:absolute;top:0;left:18px;right:18px;border-top:1px solid var(--line)}
+.rows .r span:first-child{color:var(--sub);flex:none}
+.rows .r span:last-child{text-align:right;overflow-wrap:anywhere;min-width:0}
+.rows a{color:var(--accent);text-decoration:none}
+.tl .r span:first-child{font-variant-numeric:tabular-nums}
+.memo{padding:16px 18px;white-space:pre-wrap;font-size:15px;overflow-wrap:anywhere}
+.fields{padding:6px 0}
+.f{display:block;padding:10px 18px;position:relative}
+.f + .f::before{content:"";position:absolute;top:0;left:18px;right:18px;border-top:1px solid var(--line)}
+.f > span{display:block;font-size:13px;color:var(--sub);margin-bottom:2px}
+.f input,.f select,.f textarea{width:100%;border:0;background:transparent;padding:6px 0;font-size:16px;outline:none;color:var(--ink);border-radius:0}
+.f textarea{min-height:96px;resize:vertical}
+.f select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 10px) 55%,calc(100% - 5px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+.f:focus-within > span{color:var(--accent)}
+.duo{display:grid;grid-template-columns:1fr 1fr}
+.duo .f + .f::before{top:12px;bottom:12px;left:0;right:auto;border-top:0;border-left:1px solid var(--line)}
+.kseg{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px}
+.kseg button{height:46px;border-radius:16px;font-weight:600;color:var(--sub)}
+.kseg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 24px;border-radius:26px;background:var(--surface);font-weight:600;font-size:16px}
+.btn:active{background:var(--press)}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.danger{color:var(--bad)}
+.btnrow{display:grid;gap:10px;padding:4px 0}
+.list-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:17px 18px;text-align:left;font-size:16px;position:relative}
+.list-btn + .list-btn::before{content:"";position:absolute;top:0;left:18px;right:18px;border-top:1px solid var(--line)}
+.list-btn:active{background:var(--press)}
+.list-btn small{display:block;color:var(--sub);font-size:13px;margin-top:2px}
+.list-btn.danger{color:var(--bad)}
+.hint{padding:10px 18px 0;color:var(--sub);font-size:13px}
+.confirm{margin-top:10px;padding:16px 18px;border-radius:22px;background:var(--surface);display:grid;gap:12px}
+.confirm .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(150px + var(--bot));z-index:40;margin:0 auto;max-width:420px;background:#2A2A2E;color:#fff;padding:13px 18px;border-radius:20px;font-size:14.5px;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+@media (prefers-reduced-motion: reduce){ .page,.page.open{transition:none} }
+@media (min-width:600px){ .appbar,.hero,.filters,main,.pbody,.dhead{max-width:640px;margin-left:auto;margin-right:auto} .page .appbar{max-width:none} }
+</style>
+</head>
+<body>
+
+<header class="appbar" id="homeBar">
+  <span class="small">제출 현황</span>
+  <button class="ibtn" id="setBtn" aria-label="설정">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg>
+  </button>
+</header>
+<div class="hero" id="hero">
+  <h1 id="heroTitle">제출 현황</h1>
+  <p id="heroSub"></p>
+</div>
+<div class="filters" role="group" aria-label="상태">
+  <button data-f="open" aria-pressed="true">진행 중</button>
+  <button data-f="accepted" aria-pressed="false">채택</button>
+  <button data-f="closed" aria-pressed="false">거절·철회</button>
+  <button data-f="all" aria-pressed="false">모두</button>
+</div>
+<main id="list"></main>
+
+<nav class="bottom" aria-label="구분">
+  <button data-k="all" aria-pressed="true"><b>전체</b><span id="cAll">0</span></button>
+  <button data-k="conf" aria-pressed="false"><b>학회</b><span id="cConf">0</span></button>
+  <button data-k="journal" aria-pressed="false"><b>저널</b><span id="cJour">0</span></button>
+</nav>
+<button class="fab" id="addBtn" aria-label="새 제출 추가">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<section class="page" id="pDetail" aria-label="상세"></section>
+<section class="page" id="pForm" aria-label="입력"></section>
+<section class="page" id="pSet" aria-label="설정"></section>
+<div class="toast" id="toast" role="status"></div>
+<datalist id="venues"></datalist>
+<input type="file" id="fileIn" accept="application/json,.json" hidden>
+
+<script>
+(function(){
+"use strict";
+const ST = {
+  prep:{l:"준비 중",g:"prep"}, submitted:{l:"제출 완료",g:"active"}, editor:{l:"에디터 검토",g:"active"},
+  review:{l:"리뷰 중",g:"active"}, rebuttal:{l:"Rebuttal",g:"action"}, decision:{l:"결과 대기",g:"active"},
+  major:{l:"Major Revision",g:"action"}, minor:{l:"Minor Revision",g:"action"}, resubmitted:{l:"수정본 제출",g:"active"},
+  accept:{l:"채택",g:"good"}, camera:{l:"Camera-ready",g:"good"}, presented:{l:"발표 완료",g:"good"},
+  published:{l:"출판",g:"good"}, reject:{l:"거절",g:"bad"}, withdrawn:{l:"철회",g:"bad"}
+};
+const FLOW = {
+  conf:["prep","submitted","review","rebuttal","decision","accept","camera","presented","reject","withdrawn"],
+  journal:["prep","submitted","editor","review","major","minor","resubmitted","accept","published","reject","withdrawn"]
+};
+const TRACK = {
+  conf:[["submitted","제출"],["review","리뷰"],["rebuttal","Rebuttal"],["decision","결과"],["accept","채택"],["camera","CR"],["presented","발표"]],
+  journal:[["submitted","제출"],["editor","에디터"],["review","리뷰"],["rev","수정"],["resubmitted","재제출"],["accept","채택"],["published","출판"]]
+};
+const CLOSED = ["presented","published","reject","withdrawn"];
+const ACCEPTED = ["accept","camera","presented","published"];
+const VENUES = ["ICASSP","ICC","GLOBECOM","WCNC","VTC","INFOCOM","MobiHoc","NeurIPS","ICML","ICLR","AAAI","IJCAI","CVPR","ICCV","ECCV","MICCAI","AISTATS","UAI","KDD","ACL","EMNLP",
+  "IEEE TWC","IEEE TSP","IEEE JSAC","IEEE TCOM","IEEE TMC","IEEE IoT-J","IEEE TNNLS","IEEE TMI","IEEE TIFS","IEEE TPAMI","IEEE COMML","IEEE WCL","IEEE SPL","TMLR","JMLR","Medical Image Analysis","Pattern Recognition","Neural Networks"];
+function nextHint(s,k){
+  return ({prep:"제출 마감", submitted:k==="conf"?"결과 발표":"", editor:"", review:"결과 발표", rebuttal:"Rebuttal 마감", decision:"결과 발표",
+    major:"수정본 마감", minor:"수정본 마감", resubmitted:"결과 통보", accept:k==="conf"?"Camera-ready 마감":"최종본 제출", camera:"학회 발표"})[s] || "";
+}
+
+/* helpers */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const today = () => ymd(new Date());
+function diff(a,b){ const x=a.split("-").map(Number), y=b.split("-").map(Number); return Math.round((Date.UTC(y[0],y[1]-1,y[2])-Date.UTC(x[0],x[1]-1,x[2]))/864e5); }
+function md(d){ if(!d) return ""; const [y,m,dd]=d.split("-"); return (+y===new Date().getFullYear()?"":y.slice(2)+".")+m+"."+dd; }
+const full = d => d ? d.replace(/-/g,".") : "";
+const dl = n => n===0 ? "D-day" : n>0 ? "D-"+n : "D+"+(-n);
+const clone = o => JSON.parse(JSON.stringify(o));
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+let tt; function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2400); }
+
+/* storage (on device) */
+const KEY = "paper-submissions-v1";
+let items = [];
+try{ items = JSON.parse(localStorage.getItem(KEY) || "[]"); if(!Array.isArray(items)) items=[]; }catch(e){ items = []; }
+function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); return true; }catch(e){ toast("저장 공간 오류로 저장하지 못했습니다."); return false; } }
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+function upsert(rec){ rec.updatedAt = new Date().toISOString(); if(!rec.id) rec.id = uid();
+  const i = items.findIndex(x=>x.id===rec.id); if(i>=0) items[i]=rec; else items.push(rec); persist(); render(); return rec.id; }
+function remove(id){ items = items.filter(x=>x.id!==id); persist(); render(); }
+
+/* view logic */
+const view = { k:"all", f:"open" };
+const due = p => p.nextDate && !CLOSED.includes(p.status) ? p.nextDate : null;
+function needs(p){ if(CLOSED.includes(p.status)) return false; if((ST[p.status]||{}).g==="action") return true; return !!(p.nextDate && diff(today(),p.nextDate)<=7); }
+function cmp(a,b){ const x=due(a), y=due(b); if(x&&y&&x!==y) return x<y?-1:1; if(x&&!y) return -1; if(y&&!x) return 1; return (b.submittedAt||"").localeCompare(a.submittedAt||""); }
+function fOk(p){ if(view.f==="open") return !CLOSED.includes(p.status); if(view.f==="accepted") return ACCEPTED.includes(p.status); if(view.f==="closed") return p.status==="reject"||p.status==="withdrawn"; return true; }
+const dot = s => `<i class="dot ${(ST[s]||{}).g||"active"}"></i>`;
+const stl = s => (ST[s]||{l:s||"-"}).l;
+const kindL = k => `<span class="kind ${k==="journal"?"journal":"conf"}">${k==="journal"?"저널":"학회"}</span>`;
+
+function itemHTML(p){
+  const d = due(p); let dd = "";
+  if(d){ const n=diff(today(),d); dd=`<span class="dd ${n<0?"over":n<=7?"soon":""}">${dl(n)}</span>`; }
+  const bits = [`${dot(p.status)}<span class="st">${esc(stl(p.status))}</span>`];
+  if(d) bits.push(`${esc(p.nextLabel||"다음 일정")} ${esc(md(d))}`);
+  if(p.submittedAt && p.status!=="prep"){ const n=diff(p.submittedAt,today()); bits.push(!CLOSED.includes(p.status)&&n>0 ? `제출 ${n}일째` : `제출 ${esc(md(p.submittedAt))}`); }
+  return `<button class="item" data-id="${esc(p.id)}">
+    <div class="l1"><span class="venue">${esc(p.venue||"제출처 미정")}</span>${view.k==="all"?kindL(p.kind):""}${dd}</div>
+    <div class="t">${esc(p.title||"(제목 없음)")}</div>
+    <div class="l3">${bits.join('<span aria-hidden="true">·</span>')}</div></button>`;
+}
+function group(title, arr, right){ return arr.length ? `<div class="group"><div class="ghead"><span>${title}</span><span>${right??arr.length}</span></div><div class="box">${arr.map(itemHTML).join("")}</div></div>` : ""; }
+
+function render(){
+  const sc = items.filter(p=>view.k==="all"||p.kind===view.k);
+  const open = sc.filter(p=>!CLOSED.includes(p.status)), act = sc.filter(needs);
+  $("#heroTitle").textContent = view.k==="conf" ? "학회 제출" : view.k==="journal" ? "저널 제출" : "제출 현황";
+  $(".appbar .small").textContent = $("#heroTitle").textContent;
+  $("#heroSub").innerHTML = items.length ? `진행 중 <b>${open.length}</b>건${act.length?` · 챙길 것 <b class="w">${act.length}</b>건`:""} · 채택 <b>${sc.filter(p=>ACCEPTED.includes(p.status)).length}</b>건` : "제출한 논문을 기록해 보세요";
+  const oc = k => items.filter(p=>(k==="all"||p.kind===k)&&!CLOSED.includes(p.status)).length;
+  $("#cAll").textContent = "진행 "+oc("all"); $("#cConf").textContent = "진행 "+oc("conf"); $("#cJour").textContent = "진행 "+oc("journal");
+  document.querySelectorAll("nav.bottom button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.k===view.k)));
+  document.querySelectorAll(".filters button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.f===view.f)));
+  const L = $("#list");
+  if(!items.length){ L.innerHTML = `<div class="empty">아직 기록이 없습니다.<br><button class="btn primary" id="firstAdd">첫 제출 기록하기</button></div>`; $("#firstAdd").onclick=()=>openForm(null); return; }
+  const vis = sc.filter(fOk).sort(cmp);
+  if(!vis.length){ L.innerHTML = `<div class="empty">해당하는 논문이 없습니다.</div>`; return; }
+  if(view.f==="open"){ const a=vis.filter(needs), r=vis.filter(p=>!needs(p)); L.innerHTML = group("챙길 것", a) + group(a.length?"나머지":"진행 중", r); }
+  else L.innerHTML = group(view.f==="accepted"?"채택":view.f==="closed"?"거절·철회":"모든 논문", vis);
+  const used=[...new Set(items.map(p=>p.venue).filter(Boolean))];
+  $("#venues").innerHTML=[...new Set([...used,...VENUES])].map(v=>`<option value="${esc(v)}">`).join("");
+}
+
+/* collapsing title */
+const bar = $("#homeBar");
+new IntersectionObserver(([e])=>bar.classList.toggle("shrunk", !e.isIntersecting), {rootMargin:"-60px 0px 0px 0px"}).observe($("#heroTitle"));
+
+/* page stack with Android back support */
+const stack = [];
+function pushPage(el){ stack.push(el); el.classList.add("open"); el.scrollTop=0; document.body.classList.add("locked"); history.pushState({p:stack.length}, ""); }
+function popTop(){ const el = stack.pop(); if(el) el.classList.remove("open"); if(!stack.length) document.body.classList.remove("locked"); }
+window.addEventListener("popstate", ()=>{ if(stack.length) popTop(); });
+const back = () => history.back();
+
+const icBack = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`;
+const icClose = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+
+/* steps */
+function trk(p){
+  const steps = TRACK[p.kind]||TRACK.conf; let s=p.status, tone="";
+  if(s==="reject"||s==="withdrawn"){ tone="bad"; const h=(p.history||[]).map(x=>x.status).filter(x=>x!=="reject"&&x!=="withdrawn"); s=h.length?h[h.length-1]:"submitted"; }
+  else if(ACCEPTED.includes(s)) tone="good";
+  if(s==="major"||s==="minor") s="rev";
+  const idx = steps.findIndex(x=>x[0]===s);
+  return `<div class="steps ${tone}">${steps.map((x,i)=>`<div class="${i<idx?"done":i===idx?"cur":""}"><i></i>${esc(x[1])}</div>`).join("")}</div>`;
+}
+
+/* detail */
+let curId = null;
+function detailHTML(p){
+  const rows = [];
+  if(p.submittedAt) rows.push(["제출일", full(p.submittedAt)]);
+  const d = due(p); if(d){ const n=diff(today(),d); rows.push([esc(p.nextLabel||"다음 일정"), `${full(d)} <b style="color:var(--${n<0?"bad":n<=7?"warn":"ink"})">${dl(n)}</b>`]); }
+  if(p.track) rows.push(["트랙", esc(p.track)]);
+  if(p.manuscriptId) rows.push(["논문 ID", esc(p.manuscriptId)]);
+  if(p.authors) rows.push(["저자", esc(p.authors)]);
+  if(p.link) rows.push(["링크", /^https?:\/\//i.test(p.link) ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">열기</a>` : esc(p.link)]);
+  const hist = (p.history||[]).slice().reverse();
+  const opts = (FLOW[p.kind]||FLOW.conf).map(s=>`<option value="${s}" ${s===p.status?"selected":""}>${esc(ST[s].l)}</option>`).join("");
+  const rej = p.status==="reject"||p.status==="withdrawn";
+  return `
+  <header class="appbar"><button class="ibtn" data-a="back" aria-label="뒤로">${icBack}</button><span class="ttl"></span><button class="tbtn" data-a="edit">수정</button></header>
+  <div class="pbody">
+    <div class="dhead">
+      <div class="kv">${kindL(p.kind)}<span>${esc(p.venue||"제출처 미정")}</span></div>
+      <h2>${esc(p.title||"(제목 없음)")}</h2>
+      <div class="stline">${dot(p.status)}<b>${esc(stl(p.status))}</b></div>
+      ${trk(p)}
+    </div>
+    ${rows.length?`<div class="sec"><div class="box rows">${rows.map(r=>`<div class="r"><span>${r[0]}</span><span>${r[1]}</span></div>`).join("")}</div></div>`:""}
+    <div class="sec"><div class="sech">단계 바꾸기</div>
+      <div class="box fields">
+        <div class="duo">
+          <label class="f"><span>새 단계</span><select id="cS">${opts}</select></label>
+          <label class="f"><span>바뀐 날짜</span><input type="date" id="cD" value="${today()}"></label>
+        </div>
+        <div class="duo" style="border-top:1px solid var(--line);margin:0 18px"></div>
+        <div class="duo">
+          <label class="f"><span>다음 일정</span><input id="cNL" value="${esc(p.nextLabel||"")}" placeholder="예: Rebuttal 마감"></label>
+          <label class="f"><span>날짜</span><input type="date" id="cND" value="${esc(p.nextDate||"")}"></label>
+        </div>
+      </div>
+      <div class="btnrow" style="margin-top:10px"><button class="btn primary" data-a="change">저장</button></div>
+    </div>
+    <div class="sec"><div class="sech">진행 기록</div>
+      <div class="box rows tl">${hist.length?hist.map(h=>`<div class="r"><span>${full(h.date)}</span><span>${esc(stl(h.status))}</span></div>`).join(""):`<div class="r"><span>기록 없음</span><span></span></div>`}</div></div>
+    ${p.notes?`<div class="sec"><div class="sech">메모</div><div class="box memo">${esc(p.notes)}</div></div>`:""}
+    <div class="sec"><div class="box">
+      ${rej?`<button class="list-btn" data-a="resub"><span>다른 곳에 다시 내기<small>제목·저자를 옮겨 새 기록을 만듭니다</small></span></button>`:""}
+      <button class="list-btn danger" data-a="askdel">삭제</button>
+    </div><div id="delBox"></div></div>
+  </div>`;
+}
+function openDetail(id, replace){
+  const p = items.find(x=>x.id===id); if(!p) return; curId = id;
+  const el = $("#pDetail"); el.innerHTML = detailHTML(p);
+  el.querySelector("#cS").addEventListener("change", e=>{ el.querySelector("#cNL").value = nextHint(e.target.value, p.kind); el.querySelector("#cND").value=""; });
+  if(!replace) pushPage(el);
+}
+$("#pDetail").addEventListener("click", e=>{
+  const b = e.target.closest("[data-a]"); if(!b) return; const a=b.dataset.a; const p = items.find(x=>x.id===curId); if(!p) return;
+  if(a==="back") back();
+  else if(a==="edit") openForm(p);
+  else if(a==="change"){
+    const ns=$("#cS").value, d=$("#cD").value||today(), nl=$("#cNL").value.trim(), nd=$("#cND").value;
+    const ch = ns!==p.status;
+    if(!ch && nl===(p.nextLabel||"") && nd===(p.nextDate||"")){ toast("바뀐 내용이 없습니다"); return; }
+    const r = clone(p); r.status=ns; r.nextLabel=nl; r.nextDate=nd;
+    if(ch){ r.history=(r.history||[]).concat([{status:ns,date:d}]).sort((x,y)=>(x.date||"").localeCompare(y.date||"")); }
+    upsert(r); openDetail(r.id, true); toast(ch?`${ST[ns].l}(으)로 바꿨습니다`:"일정을 저장했습니다");
+  }
+  else if(a==="resub") openForm(null, {kind:p.kind,title:p.title,authors:p.authors,status:"prep",submittedAt:"",nextLabel:"제출 마감",
+      notes:`이전 투고: ${p.venue||"-"} (${stl(p.status)})`+(p.notes?"\n\n"+p.notes:"")});
+  else if(a==="askdel") $("#delBox").innerHTML = `<div class="confirm"><div>이 기록을 삭제할까요? 되돌릴 수 없습니다.</div><div class="two"><button class="btn" data-a="nodel">취소</button><button class="btn danger" data-a="dodel">삭제</button></div></div>`;
+  else if(a==="nodel") $("#delBox").innerHTML = "";
+  else if(a==="dodel"){ remove(p.id); back(); toast("삭제했습니다"); }
+});
+
+/* form */
+let fKind="conf", fEdit=null;
+function opts(k,sel){ return FLOW[k].map(s=>`<option value="${s}" ${s===sel?"selected":""}>${esc(ST[s].l)}</option>`).join(""); }
+function openForm(p, pre){
+  fEdit = p ? p.id : null;
+  const v = p ? clone(p) : Object.assign({kind:view.k==="journal"?"journal":"conf", status:"submitted", submittedAt:today()}, pre||{});
+  fKind = v.kind||"conf"; if(!p&&!pre) v.nextLabel = nextHint(v.status,fKind);
+  const el = $("#pForm");
+  el.innerHTML = `
+  <header class="appbar"><button class="ibtn" data-a="back" aria-label="닫기">${icClose}</button><span class="ttl">${p?"수정":"새 제출"}</span><button class="tbtn" data-a="save">저장</button></header>
+  <div class="pbody">
+    <div class="sec"><div class="box kseg" role="group" aria-label="구분">
+      <button type="button" data-k="conf" aria-pressed="${fKind==="conf"}">학회</button><button type="button" data-k="journal" aria-pressed="${fKind==="journal"}">저널</button></div></div>
+    <div class="sec"><div class="box fields">
+      <label class="f"><span>논문 제목</span><textarea id="fT" rows="2" style="min-height:0" placeholder="제목">${esc(v.title||"")}</textarea></label>
+      <label class="f"><span>제출처</span><input id="fV" list="venues" value="${esc(v.venue||"")}" placeholder="예: ICASSP 2027, IEEE TWC"></label>
+      <label class="f"><span>트랙·특집호 (선택)</span><input id="fTr" value="${esc(v.track||"")}"></label>
+    </div></div>
+    <div class="sec"><div class="box fields">
+      <div class="duo">
+        <label class="f"><span>제출일</span><input type="date" id="fD" value="${esc(v.submittedAt||"")}"></label>
+        <label class="f"><span>현재 단계</span><select id="fS">${opts(fKind,v.status)}</select></label>
+      </div>
+      <div style="border-top:1px solid var(--line);margin:0 18px"></div>
+      <div class="duo">
+        <label class="f"><span>다음 일정</span><input id="fNL" value="${esc(v.nextLabel||"")}" placeholder="예: 결과 발표"></label>
+        <label class="f"><span>날짜</span><input type="date" id="fND" value="${esc(v.nextDate||"")}"></label>
+      </div>
+    </div></div>
+    <div class="sec"><div class="box fields">
+      <label class="f"><span>논문 ID</span><input id="fM" value="${esc(v.manuscriptId||"")}" autocapitalize="off" placeholder="투고 번호"></label>
+      <label class="f"><span>저자</span><input id="fA" value="${esc(v.authors||"")}"></label>
+      <label class="f"><span>투고 시스템 링크</span><input id="fL" type="url" inputmode="url" value="${esc(v.link||"")}" placeholder="https://"></label>
+      <label class="f"><span>메모</span><textarea id="fN">${esc(v.notes||"")}</textarea></label>
+    </div></div>
+  </div>`;
+  el.querySelectorAll(".kseg button").forEach(b=>b.onclick=()=>{ fKind=b.dataset.k; el.querySelectorAll(".kseg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    const cur=$("#fS").value; $("#fS").innerHTML=opts(fKind, FLOW[fKind].includes(cur)?cur:"submitted"); });
+  $("#fS").onchange = e=>{ $("#fNL").value = nextHint(e.target.value,fKind); $("#fND").value=""; };
+  pushPage(el);
+}
+$("#pForm").addEventListener("click", e=>{
+  const b = e.target.closest("[data-a]"); if(!b) return;
+  if(b.dataset.a==="back"){ back(); return; }
+  if(b.dataset.a!=="save") return;
+  const title = $("#fT").value.trim().replace(/\s*\n\s*/g," ");
+  if(!title){ toast("논문 제목을 입력하세요"); $("#fT").focus(); return; }
+  const old = fEdit ? items.find(x=>x.id===fEdit) : null;
+  const r = old ? clone(old) : {createdAt:new Date().toISOString(), history:[]};
+  Object.assign(r, {kind:fKind, title, venue:$("#fV").value.trim(), track:$("#fTr").value.trim(), submittedAt:$("#fD").value, status:$("#fS").value,
+    nextLabel:$("#fNL").value.trim(), nextDate:$("#fND").value, manuscriptId:$("#fM").value.trim(), authors:$("#fA").value.trim(), link:$("#fL").value.trim(), notes:$("#fN").value});
+  if(!old){ if(r.status!=="prep"&&r.submittedAt) r.history.push({status:"submitted",date:r.submittedAt}); if(r.status!=="submitted") r.history.push({status:r.status,date:today()}); }
+  else if(old.status!==r.status) r.history=(r.history||[]).concat([{status:r.status,date:today()}]);
+  const id = upsert(r);
+  back();
+  if(old && curId===id && $("#pDetail").classList.contains("open")) setTimeout(()=>openDetail(id,true), 0);
+  toast(old?"저장했습니다":"추가했습니다");
+});
+
+/* settings */
+let deferredInstall = null;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredInstall=e; });
+window.addEventListener("appinstalled", ()=>{ deferredInstall=null; toast("설치했습니다"); });
+function download(name, text, type){
+  const blob = new Blob([text], {type}); const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+function csv(){
+  const q=s=>`"${String(s??"").replace(/"/g,'""')}"`;
+  const head=["구분","제목","제출처","트랙","제출일","현재 단계","다음 일정","일정 날짜","논문 ID","저자","링크","메모"];
+  return "﻿"+[head.map(q).join(",")].concat(items.slice().sort(cmp).map(p=>[p.kind==="journal"?"저널":"학회",p.title,p.venue,p.track,p.submittedAt,stl(p.status),p.nextLabel,p.nextDate,p.manuscriptId,p.authors,p.link,p.notes].map(q).join(","))).join("\r\n");
+}
+function openSettings(){
+  const el = $("#pSet");
+  const standalone = matchMedia("(display-mode: standalone)").matches;
+  el.innerHTML = `
+  <header class="appbar"><button class="ibtn" data-a="back" aria-label="뒤로">${icBack}</button><span class="ttl">설정</span></header>
+  <div class="pbody">
+    ${!standalone?`<div class="sec"><div class="box"><button class="list-btn" data-a="install"><span>홈 화면에 앱 설치<small>설치하면 주소창 없이 독립된 앱으로 열립니다</small></span></button></div></div>`:""}
+    <div class="sec"><div class="sech">백업</div><div class="box">
+      <button class="list-btn" data-a="backup"><span>백업 파일 저장<small>다운로드 폴더에 .json으로 저장합니다</small></span></button>
+      <button class="list-btn" data-a="restore"><span>백업 파일 불러오기<small>같은 항목은 덮어쓰고 없는 항목은 추가합니다</small></span></button>
+      <button class="list-btn" data-a="csv"><span>엑셀용 CSV 저장</span></button>
+    </div>
+    <div class="hint">기록은 이 휴대폰 안에만 저장됩니다. 앱을 지우거나 브라우저 데이터를 삭제하면 사라지니 가끔 백업해 두세요.</div></div>
+    <div class="sec"><div class="box rows"><div class="r"><span>저장된 논문</span><span>${items.length}건</span></div><div class="r"><span>버전</span><span>1.0</span></div></div></div>
+  </div>`;
+  pushPage(el);
+}
+$("#pSet").addEventListener("click", async e=>{
+  const b = e.target.closest("[data-a]"); if(!b) return; const a=b.dataset.a;
+  if(a==="back") back();
+  else if(a==="install"){
+    if(deferredInstall){ deferredInstall.prompt(); try{ await deferredInstall.userChoice; }catch(_){} deferredInstall=null; }
+    else toast("브라우저 메뉴(⋮)에서 ‘홈 화면에 추가’ 또는 ‘앱 설치’를 누르세요");
+  }
+  else if(a==="backup") download(`제출현황-백업-${today()}.json`, JSON.stringify({app:"paper-submissions",version:1,exportedAt:new Date().toISOString(),items},null,1), "application/json");
+  else if(a==="csv") download(`제출현황-${today()}.csv`, csv(), "text/csv;charset=utf-8");
+  else if(a==="restore") $("#fileIn").click();
+});
+$("#fileIn").addEventListener("change", async e=>{
+  const f = e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const j = JSON.parse(await f.text()); const arr = Array.isArray(j) ? j : j.items;
+    if(!Array.isArray(arr)) throw 0;
+    let n=0; for(const r of arr){ if(!r||!r.title) continue; const x=clone(r); if(!ST[x.status]) x.status="submitted"; if(x.kind!=="journal") x.kind="conf";
+      const i=items.findIndex(y=>y.id===x.id); if(!x.id) x.id=uid(); if(i>=0) items[i]=x; else items.push(x); n++; }
+    persist(); render(); toast(`${n}건을 불러왔습니다`);
+  }catch(_){ toast("백업 파일 형식이 아닙니다"); }
+});
+
+/* events */
+$("#list").addEventListener("click", e=>{ const c=e.target.closest(".item"); if(c) openDetail(c.dataset.id); });
+$("#addBtn").onclick = ()=>openForm(null);
+$("#setBtn").onclick = openSettings;
+document.querySelectorAll("nav.bottom button").forEach(b=>b.onclick=()=>{ view.k=b.dataset.k; render(); window.scrollTo({top:0}); });
+document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{ view.f=b.dataset.f; render(); });
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) render(); }); // refresh D-day when reopened
+
+render();
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
